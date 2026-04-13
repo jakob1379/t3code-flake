@@ -14,23 +14,32 @@
 }:
 
 let
-  version = "0.0.15";
+  version = "0.0.17";
 
-  workspacePaths = [
-    "./"
-    "./apps/desktop"
-    "./apps/server"
-    "./apps/web"
-    "./packages/contracts"
-    "./packages/shared"
-    "./scripts"
+  workspaceDirs = [
+    "apps/desktop"
+    "apps/marketing"
+    "apps/server"
+    "apps/web"
+    "packages/client-runtime"
+    "packages/contracts"
+    "packages/shared"
+    "scripts"
   ];
+
+  workspacePaths = [ "./" ] ++ map (path: "./${path}") workspaceDirs;
 
   workspaceFilters = lib.concatMapStringsSep " " (
     path: "--filter ${lib.escapeShellArg path}"
   ) workspacePaths;
 
-  canonicalizeNodeModules = builtins.toFile "canonicalize-node-modules.ts" ''
+  workspaceDirsShell = lib.concatMapStringsSep " " lib.escapeShellArg workspaceDirs;
+
+  workspaceNodeModules = map (path: "${path}/node_modules") workspaceDirs;
+
+  workspaceNodeModulesShell = lib.concatMapStringsSep " " lib.escapeShellArg workspaceNodeModules;
+
+  canonicalizeBunInstall = builtins.toFile "canonicalize-bun-install.ts" ''
     import { lstat, mkdir, readdir, rm, symlink } from "node:fs/promises";
     import { join, relative } from "node:path";
 
@@ -39,14 +48,19 @@ let
       version: string;
     };
 
+    type PackageManifest = {
+      name?: string;
+      bin?: string | Record<string, string>;
+    };
+
     const root = process.cwd();
     const bunRoot = join(root, "node_modules/.bun");
     const linkRoot = join(bunRoot, "node_modules");
-    const directories = (await readdir(bunRoot)).sort();
+    const bunEntries = (await readdir(bunRoot)).sort();
 
     const versions = new Map<string, Entry[]>();
 
-    for (const entry of directories) {
+    for (const entry of bunEntries) {
       const full = join(bunRoot, entry);
       if (!(await isDirectory(full))) continue;
 
@@ -95,39 +109,6 @@ let
       await rm(linkPath, { recursive: true, force: true });
       await symlink(relativeTarget, linkPath);
     }
-
-    async function isDirectory(path: string) {
-      try {
-        return (await lstat(path)).isDirectory();
-      } catch {
-        return false;
-      }
-    }
-
-    function parseEntry(label: string) {
-      const marker = label.startsWith("@") ? label.indexOf("@", 1) : label.indexOf("@");
-      if (marker <= 0) return null;
-
-      const name = label.slice(0, marker).replace(/\+/g, "/");
-      const version = label.slice(marker + 1);
-      if (!name || !version) return null;
-
-      return { name, version };
-    }
-  '';
-
-  normalizeBunBinaries = builtins.toFile "normalize-bun-binaries.ts" ''
-    import { lstat, mkdir, readdir, rm, symlink } from "node:fs/promises";
-    import { join, relative } from "node:path";
-
-    type PackageManifest = {
-      name?: string;
-      bin?: string | Record<string, string>;
-    };
-
-    const root = process.cwd();
-    const bunRoot = join(root, "node_modules/.bun");
-    const bunEntries = (await readdir(bunRoot)).sort();
 
     for (const entry of bunEntries) {
       const modulesRoot = join(bunRoot, entry, "node_modules");
@@ -211,6 +192,17 @@ let
       await symlink(relativeTarget, destination);
     }
 
+    function parseEntry(label: string) {
+      const marker = label.startsWith("@") ? label.indexOf("@", 1) : label.indexOf("@");
+      if (marker <= 0) return null;
+
+      const name = label.slice(0, marker).replace(/\+/g, "/");
+      const version = label.slice(marker + 1);
+      if (!name || !version) return null;
+
+      return { name, version };
+    }
+
     async function exists(path: string) {
       try {
         await lstat(path);
@@ -237,7 +229,7 @@ stdenv.mkDerivation (finalAttrs: {
     owner = "pingdotgg";
     repo = "t3code";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-HOPiA8X/FzswKGmOuYKog3YIn5iq5rJ/7kDoGhN11x0=";
+    hash = "sha256-EbkDGpQSVHopyPWnVvndp9vDoLqXGYd1hF9iy7zYKiQ=";
   };
 
   bunDeps = stdenvNoCC.mkDerivation {
@@ -252,14 +244,13 @@ stdenv.mkDerivation (finalAttrs: {
     dontConfigure = true;
     dontFixup = true;
 
-    outputHash = "sha256-MsnBKob7ASPvrz1fiVVz2s0VxvQOZDcFI9PebJuraOE=";
+    outputHash = "sha256-ipZSGVzbYPWgg3NQB886Dg4YgAd3OE1RoHepckVUm3o=";
     outputHashAlgo = "sha256";
     outputHashMode = "recursive";
 
     postPatch = ''
       mkdir -p nix
-      cp ${canonicalizeNodeModules} nix/canonicalize-node-modules.ts
-      cp ${normalizeBunBinaries} nix/normalize-bun-binaries.ts
+      cp ${canonicalizeBunInstall} nix/canonicalize-bun-install.ts
     '';
 
     buildPhase = ''
@@ -273,8 +264,7 @@ stdenv.mkDerivation (finalAttrs: {
         --no-progress \
         --os="*"
 
-      bun --bun ./nix/canonicalize-node-modules.ts
-      bun --bun ./nix/normalize-bun-binaries.ts
+      bun --bun ./nix/canonicalize-bun-install.ts
 
       runHook postBuild
     '';
@@ -310,25 +300,20 @@ stdenv.mkDerivation (finalAttrs: {
     cp -R "${finalAttrs.bunDeps}/." .
 
     chmod -R u+w ./node_modules
-    for workspace in \
-      apps/desktop \
-      apps/server \
-      apps/web \
-      packages/contracts \
-      packages/shared \
-      scripts
+    for modules in ${workspaceNodeModulesShell}
     do
-      chmod -R u+w "$workspace/node_modules"
+      if [ -d "$modules" ]; then
+        chmod -R u+w "$modules"
+      fi
     done
 
-    patchShebangs \
-      node_modules \
-      apps/desktop/node_modules \
-      apps/server/node_modules \
-      apps/web/node_modules \
-      packages/contracts/node_modules \
-      packages/shared/node_modules \
-      scripts/node_modules
+    patchShebangs node_modules
+    for modules in ${workspaceNodeModulesShell}
+    do
+      if [ -d "$modules" ]; then
+        patchShebangs "$modules"
+      fi
+    done
 
     mkdir -p "$HOME/.node-gyp/${nodejs.version}"
     echo 11 > "$HOME/.node-gyp/${nodejs.version}/installVersion"
@@ -361,18 +346,16 @@ stdenv.mkDerivation (finalAttrs: {
   installPhase = ''
     runHook preInstall
 
-    mkdir -p "$out/bin" "$out/share/t3code/apps" "$out/share/t3code/packages"
+    mkdir -p "$out/bin" "$out/share/t3code"
 
     cp package.json "$out/share/t3code/"
     cp bun.lock "$out/share/t3code/"
 
-    cp -R apps/desktop "$out/share/t3code/apps/"
-    cp -R apps/server "$out/share/t3code/apps/"
-    cp -R apps/web "$out/share/t3code/apps/"
-    cp -R packages/contracts "$out/share/t3code/packages/"
-    cp -R packages/shared "$out/share/t3code/packages/"
-    cp -R scripts "$out/share/t3code/"
     cp -R node_modules "$out/share/t3code/"
+    for workspace in ${workspaceDirsShell}
+    do
+      cp -R --parents "$workspace" "$out/share/t3code/"
+    done
 
     makeBinaryWrapper ${nodejs}/bin/node "$out/bin/t3" \
       --add-flags "$out/share/t3code/apps/server/dist/index.mjs" \
