@@ -170,7 +170,7 @@ stdenv.mkDerivation (finalAttrs: {
     done
 
     makeBinaryWrapper ${nodejs}/bin/node "$out/bin/t3" \
-      --add-flags "$out/share/t3code/apps/server/dist/index.mjs" \
+      --add-flags "$out/share/t3code/apps/server/dist/bin.mjs" \
       --set NODE_ENV production
 
     makeBinaryWrapper ${electron}/bin/electron "$out/bin/t3code-desktop" \
