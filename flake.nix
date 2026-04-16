@@ -31,5 +31,20 @@
           default = pkgs.t3code;
           t3code = pkgs.t3code;
         });
+
+      apps = forAllSystems (system:
+        let
+          pkg = self.packages.${system}.t3code;
+        in
+        {
+          default = {
+            type = "app";
+            program = "${pkg}/bin/t3";
+          };
+          t3code-desktop = {
+            type = "app";
+            program = "${pkg}/bin/t3code-desktop";
+          };
+        });
     };
 }

@@ -4,8 +4,10 @@
   stdenvNoCC,
   fetchFromGitHub,
   bun,
+  copyDesktopItems,
   electron,
   makeBinaryWrapper,
+  makeDesktopItem,
   nodejs,
   node-gyp,
   pkg-config,
@@ -15,6 +17,17 @@
 
 let
   version = "0.0.17";
+
+  desktopItem = makeDesktopItem {
+    name = "t3code-desktop";
+    desktopName = "T3 Code";
+    exec = "t3code-desktop";
+    terminal = false;
+    categories = [
+      "Development"
+      "Utility"
+    ];
+  };
 
   workspaceDirs = [
     "apps/desktop"
@@ -93,6 +106,7 @@ stdenv.mkDerivation (finalAttrs: {
 
   nativeBuildInputs = [
     bun
+    copyDesktopItems
     makeBinaryWrapper
     nodejs
     node-gyp
@@ -100,6 +114,8 @@ stdenv.mkDerivation (finalAttrs: {
     python3
     writableTmpDirAsHomeHook
   ];
+
+  desktopItems = [ desktopItem ];
 
   env = {
     ELECTRON_SKIP_BINARY_DOWNLOAD = "1";
