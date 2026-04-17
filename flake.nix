@@ -36,8 +36,9 @@
         let
           pkg = self.packages.${system}.t3code;
         in
-        {
-          default = {
+        rec {
+          default = t3code;
+          t3code = {
             type = "app";
             program = "${pkg}/bin/t3";
           };
