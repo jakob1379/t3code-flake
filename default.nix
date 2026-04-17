@@ -19,9 +19,10 @@ let
   version = "0.0.20";
 
   desktopItem = makeDesktopItem {
-    name = "t3code-desktop";
+    name = "t3code";
     desktopName = "T3 Code";
     exec = "t3code-desktop";
+    icon = "t3code";
     terminal = false;
     categories = [
       "Development"
@@ -184,7 +185,11 @@ stdenv.mkDerivation (finalAttrs: {
   installPhase = ''
     runHook preInstall
 
-    mkdir -p "$out/bin" "$out/share/t3code"
+    mkdir -p \
+      "$out/bin" \
+      "$out/share/icons/hicolor/512x512/apps" \
+      "$out/share/pixmaps" \
+      "$out/share/t3code"
 
     cp package.json "$out/share/t3code/"
     cp bun.lock "$out/share/t3code/"
@@ -202,6 +207,9 @@ stdenv.mkDerivation (finalAttrs: {
     makeBinaryWrapper ${electron}/bin/electron "$out/bin/t3code-desktop" \
       --add-flags "$out/share/t3code/apps/desktop/dist-electron/main.js" \
       --set NODE_ENV production
+
+    cp apps/desktop/resources/icon.png "$out/share/icons/hicolor/512x512/apps/t3code.png"
+    cp apps/desktop/resources/icon.png "$out/share/pixmaps/t3code.png"
 
     runHook postInstall
   '';
