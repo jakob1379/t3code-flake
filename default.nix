@@ -16,7 +16,7 @@
 }:
 
 let
-  version = "0.0.17";
+  version = "0.0.20";
 
   desktopItem = makeDesktopItem {
     name = "t3code-desktop";
@@ -60,7 +60,7 @@ stdenv.mkDerivation (finalAttrs: {
     owner = "pingdotgg";
     repo = "t3code";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-EbkDGpQSVHopyPWnVvndp9vDoLqXGYd1hF9iy7zYKiQ=";
+    hash = "sha256-Yt6o4ryVS7jkrNiTtWe2BJQKeVV1ZQit4gzuG4bZuic=";
   };
 
   bunDeps = stdenvNoCC.mkDerivation {
@@ -75,7 +75,7 @@ stdenv.mkDerivation (finalAttrs: {
     dontConfigure = true;
     dontFixup = true;
 
-    outputHash = "sha256-ipZSGVzbYPWgg3NQB886Dg4YgAd3OE1RoHepckVUm3o=";
+    outputHash = "sha256-wDWMEjVW7tmLLPsGgljN1pOCcb1e4Ck05TXel/zM+Ls=";
     outputHashAlgo = "sha256";
     outputHashMode = "recursive";
 
@@ -158,8 +158,9 @@ stdenv.mkDerivation (finalAttrs: {
     # Bun leaves dependency lifecycle scripts disabled in the fixed-output
     # install. Build only the native node-pty addon needed on Linux instead
     # of invoking the package's full npm rebuild/prepare pipeline.
+    nodePtyDir="$(node -p "require('path').dirname(require.resolve('node-pty/package.json'))")"
     (
-      cd node_modules/.bun/node-pty@1.1.0/node_modules/node-pty
+      cd "$nodePtyDir"
       export npm_config_nodedir="${nodejs}"
       export npm_config_python="${python3}/bin/python3"
       node scripts/prebuild.js || node-gyp rebuild
