@@ -147,6 +147,15 @@ stdenv.mkDerivation (finalAttrs: {
     echo 11 > "$HOME/.node-gyp/${nodejs.version}/installVersion"
     ln -sf "${nodejs}/include" "$HOME/.node-gyp/${nodejs.version}"
 
+    # Upstream tags can lag on the embedded CLI/Desktop package.json version.
+    # Normalize those manifests so runtime --version matches the packaged tag.
+    for manifest in apps/server/package.json apps/desktop/package.json
+    do
+      sed -i -E \
+        "0,/\"version\": \"[^\"]+\"/s//\"version\": \"${finalAttrs.version}\"/" \
+        "$manifest"
+    done
+
     runHook postConfigure
   '';
 
