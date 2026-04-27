@@ -16,7 +16,7 @@
 }:
 
 let
-  version = "0.0.20";
+  version = "0.0.21";
 
   desktopItem = makeDesktopItem {
     name = "t3code-desktop";
@@ -62,6 +62,24 @@ stdenv.mkDerivation (finalAttrs: {
     tag = "v${finalAttrs.version}";
     hash = "sha256-Yt6o4ryVS7jkrNiTtWe2BJQKeVV1ZQit4gzuG4bZuic=";
   };
+
+  postPatch = ''
+    python3 - <<'PY'
+    import json
+    from pathlib import Path
+
+    for relative_path in [
+        "apps/server/package.json",
+        "apps/desktop/package.json",
+        "apps/web/package.json",
+        "packages/contracts/package.json",
+    ]:
+        package_json = Path(relative_path)
+        data = json.loads(package_json.read_text())
+        data["version"] = "${finalAttrs.version}"
+        package_json.write_text(json.dumps(data, indent=2) + "\n")
+    PY
+  '';
 
   bunDeps = stdenvNoCC.mkDerivation {
     pname = "${finalAttrs.pname}-bun-deps";
@@ -117,11 +135,6 @@ stdenv.mkDerivation (finalAttrs: {
 
   desktopItems = [ desktopItem ];
 
-  env = {
-    ELECTRON_SKIP_BINARY_DOWNLOAD = "1";
-    PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1";
-  };
-
   configurePhase = ''
     runHook preConfigure
 
@@ -143,10 +156,6 @@ stdenv.mkDerivation (finalAttrs: {
       fi
     done
 
-    mkdir -p "$HOME/.node-gyp/${nodejs.version}"
-    echo 11 > "$HOME/.node-gyp/${nodejs.version}/installVersion"
-    ln -sf "${nodejs}/include" "$HOME/.node-gyp/${nodejs.version}"
-
     runHook postConfigure
   '';
 
@@ -156,15 +165,13 @@ stdenv.mkDerivation (finalAttrs: {
     export PATH="$PWD/node_modules/.bin:$PATH"
 
     # Bun leaves dependency lifecycle scripts disabled in the fixed-output
-    # install. Build only the native node-pty addon needed on Linux instead
-    # of invoking the package's full npm rebuild/prepare pipeline.
+    # install, so build the native node-pty addon explicitly.
     nodePtyDir="$(node -p "require('path').dirname(require.resolve('node-pty/package.json'))")"
     (
       cd "$nodePtyDir"
       export npm_config_nodedir="${nodejs}"
       export npm_config_python="${python3}/bin/python3"
-      node scripts/prebuild.js || node-gyp rebuild
-      node scripts/post-install.js
+      node-gyp rebuild
     )
 
     node ./node_modules/turbo/bin/turbo run build --filter=@t3tools/desktop --filter=t3
@@ -201,7 +208,7 @@ stdenv.mkDerivation (finalAttrs: {
     description = "T3 Code CLI, bundled web UI, and desktop shell";
     homepage = "https://github.com/pingdotgg/t3code";
     license = lib.licenses.mit;
-    maintainers = with lib.maintainers; [ ];
+    maintainers = with lib.maintainers; [ "jakob1379" ];
     mainProgram = "t3";
     platforms = lib.platforms.linux;
   };

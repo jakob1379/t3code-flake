@@ -10,8 +10,6 @@
       systems = [
         "x86_64-linux"
         "aarch64-linux"
-        "x86_64-darwin"
-        "aarch64-darwin"
       ];
       forAllSystems = nixpkgs.lib.genAttrs systems;
     in
@@ -37,10 +35,6 @@
           pkg = self.packages.${system}.t3code;
         in
         {
-          default = {
-            type = "app";
-            program = "${pkg}/bin/t3";
-          };
           t3code-desktop = {
             type = "app";
             program = "${pkg}/bin/t3code-desktop";
