@@ -34,7 +34,12 @@
         let
           pkg = self.packages.${system}.t3code;
         in
-        {
+        rec {
+          default = t3code;
+          t3code = {
+            type = "app";
+            program = "${pkg}/bin/t3";
+          };
           t3code-desktop = {
             type = "app";
             program = "${pkg}/bin/t3code-desktop";
