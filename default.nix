@@ -218,7 +218,7 @@ stdenv.mkDerivation (finalAttrs: {
       --set NODE_ENV production ${providerPathWrapperArgs}
 
     makeBinaryWrapper ${electron}/bin/electron "$out/bin/t3code-desktop" \
-      --add-flags "$out/share/t3code/apps/desktop/dist-electron/main.js" \
+      --add-flags "$out/share/t3code/apps/desktop" \
       --set NODE_ENV production ${providerPathWrapperArgs}
 
     cp apps/desktop/resources/icon.png "$out/share/icons/hicolor/512x512/apps/t3code.png"
