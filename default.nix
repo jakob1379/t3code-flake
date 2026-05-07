@@ -13,10 +13,14 @@
   pkg-config,
   python3,
   writableTmpDirAsHomeHook,
+  codex,
+  claude-code,
+  enableCodex ? true,
+  enableClaude ? false,
 }:
 
 let
-  version = "0.0.21";
+  version = "0.0.22";
 
   desktopItem = makeDesktopItem {
     name = "t3code";
@@ -37,7 +41,11 @@ let
     "apps/web"
     "packages/client-runtime"
     "packages/contracts"
+    "packages/effect-acp"
+    "packages/effect-codex-app-server"
     "packages/shared"
+    "packages/ssh"
+    "packages/tailscale"
     "scripts"
   ];
 
@@ -52,6 +60,13 @@ let
   workspaceNodeModules = map (path: "${path}/node_modules") workspaceDirs;
 
   workspaceNodeModulesShell = lib.concatMapStringsSep " " lib.escapeShellArg workspaceNodeModules;
+
+  providerPackages = lib.optionals enableCodex [ codex ] ++ lib.optionals enableClaude [ claude-code ];
+
+  providerPathWrapperArgs = lib.optionalString (providerPackages != [ ]) ''
+    \
+      --prefix PATH : ${lib.makeBinPath providerPackages}
+  '';
 in
 stdenv.mkDerivation (finalAttrs: {
   pname = "t3code";
@@ -61,7 +76,7 @@ stdenv.mkDerivation (finalAttrs: {
     owner = "pingdotgg";
     repo = "t3code";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-Yt6o4ryVS7jkrNiTtWe2BJQKeVV1ZQit4gzuG4bZuic=";
+    hash = "sha256-ZSUmu3FT+wpCLwpUv3yrFWC4EzcVvev9cZQ/FyeLjqI=";
   };
 
   postPatch = ''
@@ -94,7 +109,7 @@ stdenv.mkDerivation (finalAttrs: {
     dontConfigure = true;
     dontFixup = true;
 
-    outputHash = "sha256-wDWMEjVW7tmLLPsGgljN1pOCcb1e4Ck05TXel/zM+Ls=";
+    outputHash = "sha256-q5OJ9f31/KsNwPXxw2lDlOET3rp/3OKGDzyTP2nlq38=";
     outputHashAlgo = "sha256";
     outputHashMode = "recursive";
 
@@ -200,11 +215,11 @@ stdenv.mkDerivation (finalAttrs: {
 
     makeBinaryWrapper ${nodejs}/bin/node "$out/bin/t3" \
       --add-flags "$out/share/t3code/apps/server/dist/bin.mjs" \
-      --set NODE_ENV production
+      --set NODE_ENV production ${providerPathWrapperArgs}
 
     makeBinaryWrapper ${electron}/bin/electron "$out/bin/t3code-desktop" \
       --add-flags "$out/share/t3code/apps/desktop/dist-electron/main.js" \
-      --set NODE_ENV production
+      --set NODE_ENV production ${providerPathWrapperArgs}
 
     cp apps/desktop/resources/icon.png "$out/share/icons/hicolor/512x512/apps/t3code.png"
     cp apps/desktop/resources/icon.png "$out/share/pixmaps/t3code.png"
