@@ -8,6 +8,12 @@
   electron,
   makeBinaryWrapper,
   makeDesktopItem,
+  git,
+  jujutsu,
+  gh,
+  glab,
+  azure-cli,
+  azure-cli-extensions,
   nodejs,
   node-gyp,
   pkg-config,
@@ -17,6 +23,11 @@
   claude-code,
   enableCodex ? true,
   enableClaude ? false,
+  enableGit ? true,
+  enableJujutsu ? false,
+  enableGitHub ? true,
+  enableGitLab ? true,
+  enableAzureDevOps ? false,
 }:
 
 let
@@ -61,11 +72,24 @@ let
 
   workspaceNodeModulesShell = lib.concatMapStringsSep " " lib.escapeShellArg workspaceNodeModules;
 
-  providerPackages = lib.optionals enableCodex [ codex ] ++ lib.optionals enableClaude [ claude-code ];
+  azureDevOpsPackage = azure-cli.withExtensions [ azure-cli-extensions.azure-devops ];
 
-  providerPathWrapperArgs = lib.optionalString (providerPackages != [ ]) ''
+  agentPackages =
+    lib.optionals enableCodex [ codex ]
+    ++ lib.optionals enableClaude [ claude-code ];
+
+  sourceControlPackages =
+    lib.optionals enableGit [ git ]
+    ++ lib.optionals enableJujutsu [ jujutsu ]
+    ++ lib.optionals enableGitHub [ gh ]
+    ++ lib.optionals enableGitLab [ glab ]
+    ++ lib.optionals enableAzureDevOps [ azureDevOpsPackage ];
+
+  runtimePackages = agentPackages ++ sourceControlPackages;
+
+  runtimePathWrapperArgs = lib.optionalString (runtimePackages != [ ]) ''
     \
-      --prefix PATH : ${lib.makeBinPath providerPackages}
+      --prefix PATH : ${lib.makeBinPath runtimePackages}
   '';
 in
 stdenv.mkDerivation (finalAttrs: {
@@ -215,11 +239,11 @@ stdenv.mkDerivation (finalAttrs: {
 
     makeBinaryWrapper ${nodejs}/bin/node "$out/bin/t3" \
       --add-flags "$out/share/t3code/apps/server/dist/bin.mjs" \
-      --set NODE_ENV production ${providerPathWrapperArgs}
+      --set NODE_ENV production ${runtimePathWrapperArgs}
 
     makeBinaryWrapper ${electron}/bin/electron "$out/bin/t3code-desktop" \
       --add-flags "$out/share/t3code/apps/desktop" \
-      --set NODE_ENV production ${providerPathWrapperArgs}
+      --set NODE_ENV production ${runtimePathWrapperArgs}
 
     cp apps/desktop/resources/icon.png "$out/share/icons/hicolor/512x512/apps/t3code.png"
     cp apps/desktop/resources/icon.png "$out/share/pixmaps/t3code.png"
