@@ -28,6 +28,7 @@
   enableGitHub ? true,
   enableGitLab ? true,
   enableAzureDevOps ? false,
+  enableDesktop ? false,
 }:
 
 let
@@ -45,8 +46,7 @@ let
     ];
   };
 
-  workspaceDirs = [
-    "apps/desktop"
+  commonWorkspaceDirs = [
     "apps/marketing"
     "apps/server"
     "apps/web"
@@ -59,6 +59,8 @@ let
     "packages/tailscale"
     "scripts"
   ];
+
+  workspaceDirs = commonWorkspaceDirs ++ lib.optionals enableDesktop [ "apps/desktop" ];
 
   workspacePaths = [ "./" ] ++ map (path: "./${path}") workspaceDirs;
 
@@ -90,6 +92,21 @@ let
   runtimePathWrapperArgs = lib.optionalString (runtimePackages != [ ]) ''
     \
       --prefix PATH : ${lib.makeBinPath runtimePackages}
+  '';
+
+  desktopBuildFilter = lib.optionalString enableDesktop " --filter=@t3tools/desktop";
+
+  desktopInstallCommands = lib.optionalString enableDesktop ''
+    makeBinaryWrapper ${electron}/bin/electron "$out/bin/t3code-desktop" \
+      --add-flags "$out/share/t3code/apps/desktop" \
+      --set NODE_ENV production ${runtimePathWrapperArgs}
+
+    cp apps/desktop/resources/icon.png "$out/share/icons/hicolor/512x512/apps/t3code.png"
+    cp apps/desktop/resources/icon.png "$out/share/pixmaps/t3code.png"
+  '';
+
+  cliOnlyInstallCommands = lib.optionalString (!enableDesktop) ''
+    rm -f "$out/share/t3code/node_modules/@t3tools/desktop"
   '';
 in
 stdenv.mkDerivation (finalAttrs: {
@@ -164,16 +181,15 @@ stdenv.mkDerivation (finalAttrs: {
 
   nativeBuildInputs = [
     bun
-    copyDesktopItems
     makeBinaryWrapper
     nodejs
     node-gyp
     pkg-config
     python3
     writableTmpDirAsHomeHook
-  ];
+  ] ++ lib.optionals enableDesktop [ copyDesktopItems ];
 
-  desktopItems = [ desktopItem ];
+  desktopItems = lib.optionals enableDesktop [ desktopItem ];
 
   configurePhase = ''
     runHook preConfigure
@@ -214,7 +230,7 @@ stdenv.mkDerivation (finalAttrs: {
       node-gyp rebuild
     )
 
-    node ./node_modules/turbo/bin/turbo run build --filter=@t3tools/desktop --filter=t3
+    node ./node_modules/turbo/bin/turbo run build --filter=t3${desktopBuildFilter}
 
     runHook postBuild
   '';
@@ -224,14 +240,19 @@ stdenv.mkDerivation (finalAttrs: {
 
     mkdir -p \
       "$out/bin" \
-      "$out/share/icons/hicolor/512x512/apps" \
-      "$out/share/pixmaps" \
       "$out/share/t3code"
+    ${lib.optionalString enableDesktop ''
+      mkdir -p \
+        "$out/share/icons/hicolor/512x512/apps" \
+        "$out/share/pixmaps"
+    ''}
 
     cp package.json "$out/share/t3code/"
     cp bun.lock "$out/share/t3code/"
 
     cp -R node_modules "$out/share/t3code/"
+    ${cliOnlyInstallCommands}
+
     for workspace in ${workspaceDirsShell}
     do
       cp -R --parents "$workspace" "$out/share/t3code/"
@@ -241,18 +262,13 @@ stdenv.mkDerivation (finalAttrs: {
       --add-flags "$out/share/t3code/apps/server/dist/bin.mjs" \
       --set NODE_ENV production ${runtimePathWrapperArgs}
 
-    makeBinaryWrapper ${electron}/bin/electron "$out/bin/t3code-desktop" \
-      --add-flags "$out/share/t3code/apps/desktop" \
-      --set NODE_ENV production ${runtimePathWrapperArgs}
-
-    cp apps/desktop/resources/icon.png "$out/share/icons/hicolor/512x512/apps/t3code.png"
-    cp apps/desktop/resources/icon.png "$out/share/pixmaps/t3code.png"
+    ${desktopInstallCommands}
 
     runHook postInstall
   '';
 
   meta = {
-    description = "T3 Code CLI, bundled web UI, and desktop shell";
+    description = "T3 Code CLI and bundled web UI" + lib.optionalString enableDesktop ", with desktop shell";
     homepage = "https://github.com/pingdotgg/t3code";
     license = lib.licenses.mit;
     maintainers = with lib.maintainers; [ "jakob1379" ];

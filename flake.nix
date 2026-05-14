@@ -16,6 +16,9 @@
     {
       overlays.default = final: prev: {
         t3code = final.callPackage ./default.nix { };
+        t3code-desktop = final.t3code.override {
+          enableDesktop = true;
+        };
       };
 
       packages = forAllSystems (system:
@@ -28,21 +31,23 @@
         {
           default = pkgs.t3code;
           t3code = pkgs.t3code;
+          t3code-desktop = pkgs.t3code-desktop;
         });
 
       apps = forAllSystems (system:
         let
-          pkg = self.packages.${system}.t3code;
+          cliPkg = self.packages.${system}.t3code;
+          desktopPkg = self.packages.${system}.t3code-desktop;
         in
         rec {
           default = t3code;
           t3code = {
             type = "app";
-            program = "${pkg}/bin/t3";
+            program = "${cliPkg}/bin/t3";
           };
           t3code-desktop = {
             type = "app";
-            program = "${pkg}/bin/t3code-desktop";
+            program = "${desktopPkg}/bin/t3code-desktop";
           };
         });
     };
