@@ -32,7 +32,7 @@
 }:
 
 let
-  version = "0.0.23";
+  version = "0.0.24";
 
   desktopItem = makeDesktopItem {
     name = "t3code";
@@ -117,7 +117,7 @@ stdenv.mkDerivation (finalAttrs: {
     owner = "pingdotgg";
     repo = "t3code";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-gsDHogGnzKVwypGwK1PzYBXpBYBFQHIbXMpWVUGzKU8=";
+    hash = "sha256-7mqRuWft9h9MAEVzuwC6K1aj2UUAcjheWrwncXhpbro=";
   };
 
   postPatch = ''
@@ -150,7 +150,7 @@ stdenv.mkDerivation (finalAttrs: {
     dontConfigure = true;
     dontFixup = true;
 
-    outputHash = "sha256-REcV7tZHdoHAPfgg5EFiDc+rVSmhoDa24CIJVSmCPDQ=";
+    outputHash = "sha256-fFGjIHAwEXMVsIp+Uwoe0KeEx5AQGcXLlAnIHCo8DHo=";
     outputHashAlgo = "sha256";
     outputHashMode = "recursive";
 
