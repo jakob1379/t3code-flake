@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 372" width="960" height="372" role="img" aria-labelledby="t d">
+<title id="t">How t3code-flake builds T3 Code</title>
+<desc id="d">Running nix run fetches the upstream pingdotgg/t3code source, runs bun install, rebuilds node-pty with node-gyp and runs turbo build, then wraps the result into bin/t3 with codex, git, gh and glab on its PATH by default; claude-code, jj and azure-cli are opt-in overrides.</desc>
+<style>
+:root{--bg:#F2F5F9;--panel:#FFFFFF;--ink:#17233A;--muted:#66748A;--line:#C9D3E0;--blue:#4A6FC0;--sky:#7EBAE4;--chipink:#FFFFFF;--halo:rgba(126,186,228,.35)}
+@media (prefers-color-scheme:dark){:root{--bg:#0E1626;--panel:#16213A;--ink:#E3EAF4;--muted:#8C9AB2;--line:#2E3D5A;--blue:#7EBAE4;--sky:#4A6FC0;--chipink:#0E1626;--halo:rgba(126,186,228,.22)}}
+.bg{fill:var(--bg)}
+.panel{fill:var(--panel);stroke:var(--line);stroke-width:1.5}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace}
+.sans{font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+.ink{fill:var(--ink)}.muted{fill:var(--muted)}.accent{fill:var(--blue)}
+.wire{stroke:var(--line);stroke-width:2;fill:none}
+.flow{stroke:var(--blue);stroke-width:2.5;fill:none;stroke-linecap:round}
+.glow{fill:none;stroke:var(--blue);stroke-width:2}
+.bar{stroke:var(--blue);stroke-width:3;stroke-linecap:round;fill:none}
+.check{stroke:var(--blue);stroke-width:2.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.on rect{fill:var(--blue)}.on text{fill:var(--chipink)}
+.off rect{fill:none;stroke:var(--muted);stroke-width:1.2;stroke-dasharray:4 3}.off text{fill:var(--muted)}
+.halo{fill:var(--halo)}
+.cover-g{transform:translateX(345px)}.cover{fill:var(--panel)}.cursor{fill:var(--blue)}
+@media (prefers-reduced-motion:no-preference){
+.cover-g{animation:type 9s linear infinite}
+.cursor{animation:blink 9s steps(1) infinite}
+.g-src{animation:src 9s ease-out infinite}
+.f1{stroke-dasharray:60;animation:f1 9s ease-in-out infinite}
+.s1{animation:s1 9s infinite}.s2{animation:s2 9s infinite}.s3{animation:s3 9s infinite}
+.b1,.b2,.b3{stroke-dasharray:232}
+.b1{animation:b1 9s linear infinite}.b2{animation:b2 9s linear infinite}.b3{animation:b3 9s linear infinite}
+.c1{animation:c1 9s infinite}.c2{animation:c2 9s infinite}.c3{animation:c3 9s infinite}
+.f2{stroke-dasharray:60;animation:f2 9s ease-in-out infinite}
+.g-out{animation:out 9s ease-out infinite}
+.k1{animation:k1 9s infinite}.k2{animation:k2 9s infinite}.k3{animation:k3 9s infinite}.k4{animation:k4 9s infinite}
+.halo{animation:halo 9s ease-in-out infinite}
+}
+@keyframes type{0%{transform:translateX(0)}12%,95%{transform:translateX(345px)}96%,100%{transform:translateX(0)}}
+@keyframes blink{0%,14%,22%,30%,38%,46%,54%,62%,70%,78%,86%,94%{opacity:1}18%,26%,34%,42%,50%,58%,66%,74%,82%,90%,98%{opacity:0}}
+@keyframes src{0%,12%{opacity:0}16%,92%{opacity:1}97%,100%{opacity:0}}
+@keyframes f1{0%,16%{stroke-dashoffset:60;opacity:1}20%,92%{stroke-dashoffset:0;opacity:1}97%{opacity:0}100%{stroke-dashoffset:60;opacity:0}}
+@keyframes s1{0%,20%{opacity:0}22%,92%{opacity:1}97%,100%{opacity:0}}
+@keyframes s2{0%,30%{opacity:0}32%,92%{opacity:1}97%,100%{opacity:0}}
+@keyframes s3{0%,40%{opacity:0}42%,92%{opacity:1}97%,100%{opacity:0}}
+@keyframes b1{0%,21%{stroke-dashoffset:232;opacity:1}29%,92%{stroke-dashoffset:0;opacity:1}97%,100%{stroke-dashoffset:0;opacity:0}}
+@keyframes b2{0%,31%{stroke-dashoffset:232;opacity:1}39%,92%{stroke-dashoffset:0;opacity:1}97%,100%{stroke-dashoffset:0;opacity:0}}
+@keyframes b3{0%,41%{stroke-dashoffset:232;opacity:1}49%,92%{stroke-dashoffset:0;opacity:1}97%,100%{stroke-dashoffset:0;opacity:0}}
+@keyframes c1{0%,29%{opacity:0}31%,92%{opacity:1}97%,100%{opacity:0}}
+@keyframes c2{0%,39%{opacity:0}41%,92%{opacity:1}97%,100%{opacity:0}}
+@keyframes c3{0%,49%{opacity:0}51%,92%{opacity:1}97%,100%{opacity:0}}
+@keyframes f2{0%,51%{stroke-dashoffset:60;opacity:1}55%,92%{stroke-dashoffset:0;opacity:1}97%{opacity:0}100%{stroke-dashoffset:60;opacity:0}}
+@keyframes out{0%,55%{opacity:0}58%,92%{opacity:1}97%,100%{opacity:0}}
+@keyframes k1{0%,59%{opacity:0}61%,92%{opacity:1}97%,100%{opacity:0}}
+@keyframes k2{0%,62%{opacity:0}64%,92%{opacity:1}97%,100%{opacity:0}}
+@keyframes k3{0%,65%{opacity:0}67%,92%{opacity:1}97%,100%{opacity:0}}
+@keyframes k4{0%,68%{opacity:0}70%,92%{opacity:1}97%,100%{opacity:0}}
+@keyframes halo{0%,71%{opacity:0}76%{opacity:1}84%{opacity:.45}92%{opacity:1}97%,100%{opacity:0}}
+</style>
+<rect class="bg" width="960" height="372"/>
+
+<rect class="panel" x="32" y="24" width="896" height="48" rx="10"/>
+<text class="mono accent" x="52" y="54" font-size="15" font-weight="700">$</text>
+<text class="mono ink" x="72" y="54" font-size="15">nix run github:jakob1379/t3code-flake</text>
+<g class="cover-g"><rect class="cover" x="70" y="34" width="345" height="28"/><rect class="cursor" x="70" y="39" width="9" height="19" rx="1"/></g>
+
+<text class="sans muted" x="32" y="114" font-size="13">source</text>
+<text class="sans muted" x="316" y="114" font-size="13">build</text>
+<text class="sans muted" x="664" y="114" font-size="13">wrapper</text>
+
+<rect class="panel" x="32" y="128" width="224" height="176" rx="12"/>
+<rect class="glow g-src" x="32" y="128" width="224" height="176" rx="12"/>
+<text class="mono muted" x="50" y="160" font-size="12">fetchFromGitHub</text>
+<text class="mono ink" x="50" y="190" font-size="15" font-weight="700">pingdotgg/t3code</text>
+<text class="mono muted" x="50" y="216" font-size="12">tag = "v${version}"</text>
+<text class="sans muted" x="50" y="282" font-size="12">upstream release, pinned</text>
+
+<path class="wire" d="M256 154H316"/>
+<path class="flow f1" d="M256 154H316"/>
+
+<rect class="panel" x="316" y="128" width="288" height="52" rx="10"/>
+<rect class="glow s1" x="316" y="128" width="288" height="52" rx="10"/>
+<text class="mono ink" x="332" y="152" font-size="13">bun install --frozen-lockfile</text>
+<path class="bar b1" d="M332 168H564"/>
+<path class="check c1" d="M576 150l5 5 9-10"/>
+
+<rect class="panel" x="316" y="190" width="288" height="52" rx="10"/>
+<rect class="glow s2" x="316" y="190" width="288" height="52" rx="10"/>
+<text class="mono ink" x="332" y="214" font-size="13">node-gyp rebuild  (node-pty)</text>
+<path class="bar b2" d="M332 230H564"/>
+<path class="check c2" d="M576 212l5 5 9-10"/>
+
+<rect class="panel" x="316" y="252" width="288" height="52" rx="10"/>
+<rect class="glow s3" x="316" y="252" width="288" height="52" rx="10"/>
+<text class="mono ink" x="332" y="276" font-size="13">turbo run build --filter=t3</text>
+<path class="bar b3" d="M332 292H564"/>
+<path class="check c3" d="M576 274l5 5 9-10"/>
+
+<path class="wire" d="M604 278H664"/>
+<path class="flow f2" d="M604 278H664"/>
+
+<rect class="panel" x="664" y="128" width="264" height="176" rx="12"/>
+<rect class="glow g-out" x="664" y="128" width="264" height="176" rx="12"/>
+<text class="mono muted" x="680" y="156" font-size="12">makeBinaryWrapper</text>
+<rect class="halo" x="674" y="164" width="92" height="34" rx="8"/>
+<text class="mono ink" x="682" y="189" font-size="22" font-weight="700">bin/t3</text>
+<text class="mono muted" x="680" y="222" font-size="12">--prefix PATH :</text>
+
+<g class="mono" font-size="12">
+<g class="on k1"><rect x="680" y="232" width="52" height="26" rx="13"/><text x="706" y="249" text-anchor="middle">codex</text></g>
+<g class="on k2"><rect x="740" y="232" width="40" height="26" rx="13"/><text x="760" y="249" text-anchor="middle">git</text></g>
+<g class="on k3"><rect x="788" y="232" width="34" height="26" rx="13"/><text x="805" y="249" text-anchor="middle">gh</text></g>
+<g class="on k4"><rect x="830" y="232" width="48" height="26" rx="13"/><text x="854" y="249" text-anchor="middle">glab</text></g>
+<g class="off"><rect x="680" y="266" width="96" height="26" rx="13"/><text x="728" y="283" text-anchor="middle">claude-code</text></g>
+<g class="off"><rect x="784" y="266" width="34" height="26" rx="13"/><text x="801" y="283" text-anchor="middle">jj</text></g>
+<g class="off"><rect x="826" y="266" width="84" height="26" rx="13"/><text x="868" y="283" text-anchor="middle">azure-cli</text></g>
+</g>
+
+<g class="sans" font-size="12">
+<g class="on"><rect x="628" y="326" width="22" height="14" rx="7"/></g>
+<text class="muted" x="658" y="337">on by default</text>
+<g class="off"><rect x="770" y="326" width="22" height="14" rx="7"/></g>
+<text class="muted" x="800" y="337">opt in via .override</text>
+</g>
+</svg>
